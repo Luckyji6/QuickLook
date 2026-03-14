@@ -276,6 +276,25 @@ app.post('/api/copy', (req, res) => {
   }
 });
 
+const LOGO = [
+  ' ____  _     _  ____ _  __   _     ____  ____  _  __',
+  '/  _ \\/ \\ /\\/ \\/   _Y |/ /  / \\   /  _ \\/  _ \\/ |/ /',
+  '| / \\|| | ||| ||  / |   /   | |   | / \\|| / \\||   / ',
+  '| \\_\\|| \\_/|| ||  \\_|   \\   | |_/\\| \\_/|| \\_/||   \\ ',
+  '\\____\\\\____/\\_/\\____|_|\\_\\  \\____/\\____/\\____/\\_|\\_\\',
+];
+
+function showStartupBanner() {
+  if (!process.stdout.isTTY) return;
+  const cols = process.stdout.columns || 80;
+  process.stdout.write('\x1b[2J\x1b[H');
+  for (const line of LOGO) {
+    const pad = Math.max(0, Math.floor((cols - line.length) / 2));
+    process.stdout.write(' '.repeat(pad) + line + '\n');
+  }
+  process.stdout.write('\n');
+}
+
 async function start(dirArg) {
   photosBasePath = dirArg ? path.resolve(dirArg) : null;
   if (!photosBasePath && process.argv[2]) {
@@ -283,6 +302,7 @@ async function start(dirArg) {
   }
 
   app.listen(PORT, () => {
+    showStartupBanner();
     const url = `http://localhost:${PORT}`;
     console.log(`QuickLook started: ${url}`);
     if (photosBasePath) {
