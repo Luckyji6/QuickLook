@@ -12,6 +12,11 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  padding: 0.25rem;
+  border-radius: 8px;
+  background: rgba(26, 26, 26, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
 }
 
 .lang-switcher {
@@ -96,6 +101,7 @@
 }
 
 :root {
+  --top-bar-width: 11rem; /* 预留右上角空间，避免与语言/设置重叠 */
   --bg: #1a1a1a;
   --bg-elevated: #252525;
   --text: #e8e6e3;
@@ -118,6 +124,7 @@ body {
 .panel {
   min-height: 100vh;
   padding: 2rem;
+  padding-right: max(2rem, var(--top-bar-width));
 }
 
 .hidden {
@@ -377,6 +384,7 @@ body {
   align-items: center;
   gap: 1rem;
   padding: 1rem 1.5rem;
+  padding-right: max(1.5rem, var(--top-bar-width));
   background: rgba(0, 0, 0, 0.6);
 }
 
