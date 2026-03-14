@@ -13,9 +13,22 @@ const PORT = 3847;
 
 let photosBasePath = null;
 let photosByDate = null;
+let keepaliveCount = 0;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Keepalive：页面打开时建立长连接，关闭时断开，无连接时退出进程
+app.get('/api/keepalive', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.write(' ');
+  keepaliveCount++;
+  req.on('close', () => {
+    keepaliveCount--;
+    if (keepaliveCount <= 0) process.exit(0);
+  });
+});
 
 // 获取照片列表（按日期分组）
 app.get('/api/photos', async (req, res) => {

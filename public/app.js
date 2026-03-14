@@ -646,6 +646,7 @@
   }
 
   function init() {
+    fetch('/api/keepalive').catch(() => {});
     applyLang();
     document.querySelectorAll('[data-lang]').forEach((btn) => {
       btn.addEventListener('click', () => {
