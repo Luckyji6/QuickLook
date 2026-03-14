@@ -50,9 +50,8 @@
   const previewExif = $('#preview-exif');
   const previewLoadBar = $('#preview-load-bar');
   const copyModalDesc = $('#copy-modal-desc');
-  const langSwitcher = $('#lang-switcher');
-  const settingsBtn = $('#settings-btn');
-  const settingsMenu = $('#settings-menu');
+  const menuBtn = $('#menu-btn');
+  const menuDropdown = $('#menu-dropdown');
   const btnUpdate = $('#btn-update');
   const btnUninstall = $('#btn-uninstall');
 
@@ -67,7 +66,7 @@
     document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
       el.placeholder = t(el.dataset.i18nPlaceholder);
     });
-    langSwitcher?.querySelectorAll('button').forEach((btn) => {
+    document.querySelectorAll('[data-lang]').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.lang === window.i18n?.getLang());
     });
     updateSelectedUI();
@@ -648,7 +647,7 @@
 
   function init() {
     applyLang();
-    langSwitcher?.querySelectorAll('button').forEach((btn) => {
+    document.querySelectorAll('[data-lang]').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (window.i18n?.setLang(btn.dataset.lang)) {
           applyLang();
@@ -666,15 +665,15 @@
     copyConfirm.addEventListener('click', doCopyWithServer);
     copyClose.addEventListener('click', closeCopyModal);
 
-    settingsBtn?.addEventListener('click', (e) => {
+    menuBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
-      settingsMenu?.classList.toggle('hidden');
+      menuDropdown?.classList.toggle('hidden');
     });
-    document.addEventListener('click', () => settingsMenu?.classList.add('hidden'));
-    settingsMenu?.addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', () => menuDropdown?.classList.add('hidden'));
+    menuDropdown?.addEventListener('click', (e) => e.stopPropagation());
 
     btnUpdate?.addEventListener('click', async () => {
-      settingsMenu?.classList.add('hidden');
+      menuDropdown?.classList.add('hidden');
       btnUpdate.disabled = true;
       btnUpdate.textContent = '...';
       try {
@@ -691,7 +690,7 @@
     });
 
     btnUninstall?.addEventListener('click', async () => {
-      settingsMenu?.classList.add('hidden');
+      menuDropdown?.classList.add('hidden');
       if (!confirm(t('uninstallConfirm'))) return;
       if (!confirm(t('uninstallConfirmAgain'))) return;
       try {

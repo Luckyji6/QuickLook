@@ -10,16 +10,15 @@
 <body>
   <div id="app">
     <div class="top-bar">
-      <div id="lang-switcher" class="lang-switcher">
-        <button data-lang="en">EN</button>
-        <button data-lang="zh">中文</button>
-      </div>
-      <div class="settings-wrap">
-        <button id="settings-btn" class="settings-btn" title="Settings" aria-label="Settings">⋮</button>
-        <div id="settings-menu" class="settings-menu hidden">
-          <button id="btn-update" data-i18n="update"></button>
-          <button id="btn-uninstall" data-i18n="uninstall" class="danger"></button>
+      <button id="menu-btn" class="menu-btn" aria-label="Menu">⋯</button>
+      <div id="menu-dropdown" class="menu-dropdown hidden">
+        <div class="menu-section">
+          <button data-lang="en" class="menu-item">EN</button>
+          <button data-lang="zh" class="menu-item">中文</button>
         </div>
+        <div class="menu-divider"></div>
+        <button id="btn-update" class="menu-item" data-i18n="update"></button>
+        <button id="btn-uninstall" class="menu-item danger" data-i18n="uninstall"></button>
       </div>
     </div>
 
