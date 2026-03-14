@@ -133,28 +133,49 @@ app.post('/api/set-dir', (req, res) => {
   res.json({ success: true, path: photosBasePath });
 });
 
-// 更新（仅在有新版本时 git pull + 重装依赖 + 重建 launcher）
+// 更新（流式返回进度，仅在有新版本时 git pull + 重装依赖 + 重建 launcher）
+function sendProgress(res, data) {
+  res.write(JSON.stringify(data) + '\n');
+}
+
 app.post('/api/update', async (req, res) => {
   const installDir = path.join(__dirname);
   const os = require('os');
   const binDir = path.join(os.homedir(), '.local', 'bin');
   const launcherPath = path.join(binDir, 'quicklook');
+  const { execSync } = require('child_process');
+
+  res.setHeader('Content-Type', 'application/x-ndjson');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.flushHeaders && res.flushHeaders();
+
   try {
     if (!fs.existsSync(path.join(installDir, '.git'))) {
-      return res.status(400).json({ error: 'Not a git clone. Run: curl -fsSL .../install.sh | bash' });
+      sendProgress(res, { error: 'Not a git clone. Run: curl -fsSL .../install.sh | bash' });
+      res.end();
+      return;
     }
-    const { execSync } = require('child_process');
+
+    sendProgress(res, { progress: 5, messageKey: 'updateChecking' });
     execSync('git fetch origin', { cwd: installDir, stdio: 'pipe' });
     const behind = execSync('git rev-list HEAD..origin/main --count', { cwd: installDir, encoding: 'utf8' }).trim();
+
     if (behind === '0') {
-      return res.json({ success: true, message: 'Already up to date.', updated: false });
+      sendProgress(res, { progress: 100, success: true, messageKey: 'alreadyUpToDate', updated: false });
+      res.end();
+      return;
     }
+
+    sendProgress(res, { progress: 15, messageKey: 'updateDownloading' });
     execSync('git pull origin main', { cwd: installDir, stdio: 'pipe' });
+
     let runner = 'node';
     try {
       execSync('bun --version', { stdio: 'pipe' });
       runner = 'bun';
     } catch (_) {}
+
+    sendProgress(res, { progress: 50, messageKey: 'updateInstalling' });
     if (fs.existsSync(path.join(installDir, 'package.json'))) {
       try {
         execSync('bun install', { cwd: installDir, stdio: 'pipe' });
@@ -162,7 +183,8 @@ app.post('/api/update', async (req, res) => {
         execSync('npm install', { cwd: installDir, stdio: 'pipe' });
       }
     }
-    // Recreate launcher with auto-update logic
+
+    sendProgress(res, { progress: 85, messageKey: 'updateLauncher' });
     const launcherScript = `#!/bin/bash
 cd "${installDir}"
 # Auto-update on startup (only when behind)
@@ -184,16 +206,19 @@ exec ${runner} server.js "$@"
     if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
     fs.writeFileSync(launcherPath, launcherScript, { mode: 0o755 });
 
+    sendProgress(res, { progress: 100, success: true, messageKey: 'updateRestarting', updated: true });
+    res.end();
+
     const { spawn } = require('child_process');
     const args = photosBasePath ? [photosBasePath] : [];
-    res.json({ success: true, message: 'Update complete. Restarting...', updated: true });
     res.on('finish', () => {
       spawn(launcherPath, args, { detached: true, stdio: 'ignore', env: process.env }).unref();
       process.exit(0);
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message || 'Update failed' });
+    sendProgress(res, { error: err.message || 'Update failed' });
+    res.end();
   }
 });
 

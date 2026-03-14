@@ -675,14 +675,48 @@
     btnUpdate?.addEventListener('click', async () => {
       menuDropdown?.classList.add('hidden');
       btnUpdate.disabled = true;
-      btnUpdate.textContent = '...';
+      const progressEl = $('#update-progress');
+      const progressFill = $('#update-progress-fill');
+      const progressText = $('#update-progress-text');
+      progressEl?.classList.remove('hidden');
+      if (progressFill) progressFill.style.width = '0%';
+      if (progressText) progressText.textContent = t('updateChecking') || 'Checking...';
       try {
         const r = await fetch('/api/update', { method: 'POST' });
-        const data = await r.json();
-        if (data.error) throw new Error(data.error);
-        alert(data.updated === false ? t('alreadyUpToDate') : t('updateSuccess'));
-        if (data.updated) setTimeout(() => location.reload(), 1500);
+        if (!r.ok) throw new Error(r.statusText);
+        const reader = r.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let lastData = null;
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const data = JSON.parse(line);
+              lastData = data;
+              if (data.progress != null && progressFill) progressFill.style.width = data.progress + '%';
+              if (progressText) progressText.textContent = data.messageKey ? t(data.messageKey) : (data.message || '');
+            } catch (_) {}
+          }
+        }
+        if (buffer.trim()) {
+          try {
+            lastData = JSON.parse(buffer);
+            if (lastData?.progress != null && progressFill) progressFill.style.width = lastData.progress + '%';
+            if (progressText && lastData?.messageKey) progressText.textContent = t(lastData.messageKey);
+          } catch (_) {}
+        }
+        progressEl?.classList.add('hidden');
+        if (lastData?.error) throw new Error(lastData.error);
+        alert(lastData?.updated === false ? t('alreadyUpToDate') : t('updateSuccess'));
+        if (lastData?.updated) setTimeout(() => location.reload(), 1500);
       } catch (err) {
+        progressEl?.classList.add('hidden');
         alert(t('updateFailed') + ': ' + err.message);
       } finally {
         btnUpdate.disabled = false;
