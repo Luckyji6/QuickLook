@@ -681,6 +681,7 @@
         const data = await r.json();
         if (data.error) throw new Error(data.error);
         alert(data.updated === false ? t('alreadyUpToDate') : t('updateSuccess'));
+        if (data.updated) setTimeout(() => location.reload(), 1500);
       } catch (err) {
         alert(t('updateFailed') + ': ' + err.message);
       } finally {

@@ -183,7 +183,14 @@ exec ${runner} server.js "$@"
 `;
     if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
     fs.writeFileSync(launcherPath, launcherScript, { mode: 0o755 });
-    res.json({ success: true, message: 'Update complete. Restart quicklook to apply.', updated: true });
+
+    const { spawn } = require('child_process');
+    const args = photosBasePath ? [photosBasePath] : [];
+    res.json({ success: true, message: 'Update complete. Restarting...', updated: true });
+    res.on('finish', () => {
+      spawn(launcherPath, args, { detached: true, stdio: 'ignore', env: process.env }).unref();
+      process.exit(0);
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Update failed' });
