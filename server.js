@@ -133,23 +133,55 @@ app.post('/api/set-dir', (req, res) => {
   res.json({ success: true, path: photosBasePath });
 });
 
-// 更新（git pull + 重装依赖）
+// 更新（仅在有新版本时 git pull + 重装依赖 + 重建 launcher）
 app.post('/api/update', async (req, res) => {
   const installDir = path.join(__dirname);
+  const os = require('os');
+  const binDir = path.join(os.homedir(), '.local', 'bin');
+  const launcherPath = path.join(binDir, 'quicklook');
   try {
     if (!fs.existsSync(path.join(installDir, '.git'))) {
       return res.status(400).json({ error: 'Not a git clone. Run: curl -fsSL .../install.sh | bash' });
     }
     const { execSync } = require('child_process');
+    execSync('git fetch origin', { cwd: installDir, stdio: 'pipe' });
+    const behind = execSync('git rev-list HEAD..origin/main --count', { cwd: installDir, encoding: 'utf8' }).trim();
+    if (behind === '0') {
+      return res.json({ success: true, message: 'Already up to date.', updated: false });
+    }
     execSync('git pull origin main', { cwd: installDir, stdio: 'pipe' });
-    if (require('fs').existsSync(path.join(installDir, 'bun.lockb')) || require('fs').existsSync(path.join(installDir, 'package.json'))) {
+    let runner = 'node';
+    try {
+      execSync('bun --version', { stdio: 'pipe' });
+      runner = 'bun';
+    } catch (_) {}
+    if (fs.existsSync(path.join(installDir, 'package.json'))) {
       try {
         execSync('bun install', { cwd: installDir, stdio: 'pipe' });
       } catch {
         execSync('npm install', { cwd: installDir, stdio: 'pipe' });
       }
     }
-    res.json({ success: true, message: 'Update complete. Restart quicklook to apply.' });
+    // Recreate launcher with auto-update logic
+    const launcherScript = `#!/bin/bash
+cd "${installDir}"
+# Auto-update on startup (only when behind)
+if [ -d ".git" ]; then
+  git fetch origin 2>/dev/null
+  behind=$(git rev-list HEAD..origin/main --count 2>/dev/null || echo "0")
+  if [ "$behind" != "0" ]; then
+    git pull origin main
+    if command -v bun >/dev/null 2>&1; then bun install
+    elif command -v pnpm >/dev/null 2>&1; then pnpm install
+    elif command -v yarn >/dev/null 2>&1; then yarn install
+    else npm install; fi
+  fi
+fi
+exec ${runner} server.js "$@"
+`;
+    if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
+    fs.writeFileSync(launcherPath, launcherScript, { mode: 0o755 });
+    res.json({ success: true, message: 'Update complete. Restart quicklook to apply.', updated: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Update failed' });

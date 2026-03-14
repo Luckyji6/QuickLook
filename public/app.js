@@ -681,7 +681,7 @@
         const r = await fetch('/api/update', { method: 'POST' });
         const data = await r.json();
         if (data.error) throw new Error(data.error);
-        alert(t('updateSuccess'));
+        alert(data.updated === false ? t('alreadyUpToDate') : t('updateSuccess'));
       } catch (err) {
         alert(t('updateFailed') + ': ' + err.message);
       } finally {

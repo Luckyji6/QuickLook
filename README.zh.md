@@ -37,6 +37,10 @@ node server.js /path/to/photos
 
 ## 更新
 
+每次运行 `quicklook` 时会**自动检查并升级**，有新版本时静默更新。
+
+手动更新：
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Luckyji6/QuickLook/main/update.sh | bash
 ```

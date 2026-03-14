@@ -111,17 +111,29 @@ install_deps() {
   return 1
 }
 
-# Create launcher script
+# Create launcher script (with auto-update on startup)
 create_launcher() {
   local runner="$1"
   mkdir -p "$BIN_LINK"
   cat > "$BIN_LINK/$LAUNCHER" << LAUNCHER
 #!/bin/bash
 cd "$INSTALL_DIR"
+# Auto-update on startup (only when behind)
+if [ -d ".git" ]; then
+  git fetch origin 2>/dev/null
+  behind=\$(git rev-list HEAD..origin/main --count 2>/dev/null || echo "0")
+  if [ "\$behind" != "0" ]; then
+    git pull origin main
+    if command -v bun >/dev/null 2>&1; then bun install
+    elif command -v pnpm >/dev/null 2>&1; then pnpm install
+    elif command -v yarn >/dev/null 2>&1; then yarn install
+    else npm install; fi
+  fi
+fi
 exec $runner server.js "\$@"
 LAUNCHER
   chmod +x "$BIN_LINK/$LAUNCHER"
-  log_info "Launcher created: $BIN_LINK/$LAUNCHER"
+  log_info "Launcher created: $BIN_LINK/$LAUNCHER (with auto-update)"
 }
 
 # Main

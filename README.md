@@ -37,6 +37,10 @@ node server.js /path/to/photos
 
 ## Update
 
+QuickLook **auto-updates on startup** when you run `quicklook` — it checks for new versions and upgrades silently if available.
+
+Manual update:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Luckyji6/QuickLook/main/update.sh | bash
 ```
