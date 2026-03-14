@@ -60,12 +60,14 @@ cd "$INSTALL_DIR"
 if [ -d ".git" ]; then
   git fetch origin 2>/dev/null
   behind=\$(git rev-list HEAD..origin/main --count 2>/dev/null || echo "0")
-  if [ "\$behind" != "0" ]; then
+  if [ "\$behind" != "0" ] && [ "\$behind" != "" ]; then
+    echo "QuickLook: updating..."
     git pull origin main
     if command -v bun >/dev/null 2>&1; then bun install
     elif command -v pnpm >/dev/null 2>&1; then pnpm install
     elif command -v yarn >/dev/null 2>&1; then yarn install
     else npm install; fi
+    echo "QuickLook: updated."
   fi
 fi
 exec $runner server.js "\$@"
