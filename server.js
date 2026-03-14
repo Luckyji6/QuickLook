@@ -133,6 +133,45 @@ app.post('/api/set-dir', (req, res) => {
   res.json({ success: true, path: photosBasePath });
 });
 
+// 更新（git pull + 重装依赖）
+app.post('/api/update', async (req, res) => {
+  const installDir = path.join(__dirname);
+  try {
+    if (!fs.existsSync(path.join(installDir, '.git'))) {
+      return res.status(400).json({ error: 'Not a git clone. Run: curl -fsSL .../install.sh | bash' });
+    }
+    const { execSync } = require('child_process');
+    execSync('git pull origin main', { cwd: installDir, stdio: 'pipe' });
+    if (require('fs').existsSync(path.join(installDir, 'bun.lockb')) || require('fs').existsSync(path.join(installDir, 'package.json'))) {
+      try {
+        execSync('bun install', { cwd: installDir, stdio: 'pipe' });
+      } catch {
+        execSync('npm install', { cwd: installDir, stdio: 'pipe' });
+      }
+    }
+    res.json({ success: true, message: 'Update complete. Restart quicklook to apply.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Update failed' });
+  }
+});
+
+// 卸载（移除启动器 + 安装目录，需二次确认由前端处理）
+app.post('/api/uninstall', (req, res) => {
+  const installDir = path.join(__dirname);
+  const binDir = path.join(require('os').homedir(), '.local', 'bin');
+  const launcher = path.join(binDir, 'quicklook');
+  try {
+    const { spawn } = require('child_process');
+    const script = `sleep 2; rm -f "${launcher}"; rm -rf "${installDir}"`;
+    spawn('sh', ['-c', script], { detached: true, stdio: 'ignore' }).unref();
+    res.json({ success: true, message: 'Uninstall started. This page will close.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Uninstall failed' });
+  }
+});
+
 // 批量复制选中照片到目标目录
 app.post('/api/copy', (req, res) => {
   const { targetDir, relativePaths } = req.body;

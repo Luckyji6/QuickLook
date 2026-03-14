@@ -2,6 +2,8 @@
 
 A local web tool that helps photographers quickly filter photos and batch-copy them to a target directory.
 
+[中文](README.zh.md)
+
 ## Features
 
 - Open a directory and display all photos grouped by date
@@ -31,6 +33,18 @@ git clone https://github.com/Luckyji6/QuickLook.git
 cd QuickLook
 bun install   # or: pnpm install / yarn / npm install
 node server.js /path/to/photos
+```
+
+## Update
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Luckyji6/QuickLook/main/update.sh | bash
+```
+
+## Uninstall
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Luckyji6/QuickLook/main/uninstall.sh | bash
 ```
 
 ## Usage

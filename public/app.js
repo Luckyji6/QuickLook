@@ -2,6 +2,8 @@
   const PRELOAD_RANGE = 3;
   const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.heif', '.webp', '.tiff', '.tif', '.gif', '.bmp'];
 
+  const t = (key, vars) => window.i18n?.t(key, vars) ?? key;
+
   let state = {
     groups: [],
     flatPhotos: [],
@@ -47,8 +49,32 @@
   const progressText = $('#progress-text');
   const previewExif = $('#preview-exif');
   const previewLoadBar = $('#preview-load-bar');
+  const copyModalDesc = $('#copy-modal-desc');
+  const langSwitcher = $('#lang-switcher');
+  const settingsBtn = $('#settings-btn');
+  const settingsMenu = $('#settings-menu');
+  const btnUpdate = $('#btn-update');
+  const btnUninstall = $('#btn-uninstall');
 
   const supportsDirPicker = typeof window.showDirectoryPicker === 'function';
+
+  function applyLang() {
+    document.title = t('title');
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+      const key = el.dataset.i18n;
+      if (key && el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') el.textContent = t(key);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+      el.placeholder = t(el.dataset.i18nPlaceholder);
+    });
+    langSwitcher?.querySelectorAll('button').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.lang === window.i18n?.getLang());
+    });
+    updateSelectedUI();
+    if (copyModalDesc && !copyModal.classList.contains('hidden')) {
+      copyModalDesc.innerHTML = t('copyModalDesc', { count: state.selected.size });
+    }
+  }
   const PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
   function showPanel(panel) {
@@ -134,9 +160,9 @@
 
   async function loadPhotosFromPicker(dirHandle) {
     loading.classList.remove('hidden');
-    loading.textContent = '正在扫描照片...';
+    loading.textContent = t('scanningPhotos');
     const rawPhotos = await scanDirHandle(dirHandle);
-    loading.textContent = '正在解析日期...';
+    loading.textContent = t('parsingDate');
     const withDates = await Promise.all(
       rawPhotos.map(async (p) => ({ ...p, date: (await getPhotoDate(p)).toISOString().slice(0, 10) }))
     );
@@ -231,7 +257,7 @@
 
   function renderDateGroups() {
     if (state.groups.length === 0) {
-      dateGroups.innerHTML = '<p class="empty">该目录下没有找到图片</p>';
+      dateGroups.innerHTML = `<p class="empty">${t('noPhotos')}</p>`;
       loading.classList.add('hidden');
       return;
     }
@@ -245,7 +271,7 @@
       <div class="date-group" data-date="${g.date}">
         <div class="date-group-header">
           <span>${g.date}</span>
-          <span class="count">${g.photos.length} 张</span>
+          <span class="count">${g.photos.length} ${t('photos')}</span>
         </div>
         <div class="date-group-photos">
           ${g.photos
@@ -347,7 +373,7 @@
     if (!exif) return '';
     const parts = [];
     const d = exif.DateTimeOriginal || exif.CreateDate;
-    if (d) parts.push(new Date(d).toLocaleString('zh-CN'));
+    if (d) parts.push(new Date(d).toLocaleString(window.i18n?.getLang() === 'zh' ? 'zh-CN' : 'en'));
     if (exif.FocalLength != null) parts.push(`${exif.FocalLength}mm`);
     if (exif.FNumber != null) parts.push(`f/${exif.FNumber}`);
     if (exif.ExposureTime != null) parts.push(exif.ExposureTime < 1 ? `1/${Math.round(1 / exif.ExposureTime)}s` : `${exif.ExposureTime}s`);
@@ -451,14 +477,14 @@
 
   function updateSelectedUI() {
     const n = state.selected.size;
-    selectedCount.textContent = `已选 ${n} 张`;
+    selectedCount.textContent = `${t('selectedCount')} ${n} ${t('photos')}`;
     btnCopy.disabled = n === 0;
-    if (previewSelectedCount) previewSelectedCount.textContent = `已选 ${n} 张`;
+    if (previewSelectedCount) previewSelectedCount.textContent = `${t('selectedCount')} ${n} ${t('photos')}`;
     if (btnCopyPreview) btnCopyPreview.disabled = n === 0;
   }
 
   function openCopyModal() {
-    copyCount.textContent = state.selected.size;
+    if (copyModalDesc) copyModalDesc.innerHTML = t('copyModalDesc', { count: state.selected.size });
     copyTargetDir.value = '';
     copyProgress.classList.add('hidden');
     copyPickerWrap.classList.toggle('hidden', !state.useClientMode || !supportsDirPicker);
@@ -489,12 +515,12 @@
         }
         done++;
         progressFill.style.width = Math.round((done / selectedPhotos.length) * 100) + '%';
-        progressText.textContent = `复制中 ${done} / ${selectedPhotos.length}...`;
+        progressText.textContent = `${t('copying')} ${t('copyProgress', { done, total: selectedPhotos.length })}`;
       }
-      progressText.textContent = `完成！成功复制 ${done} / ${selectedPhotos.length} 张`;
+      progressText.textContent = `${t('copyDone')} ${done} / ${selectedPhotos.length}`;
     } catch (err) {
       if (err.name !== 'AbortError') {
-        progressText.textContent = '复制失败: ' + err.message;
+        progressText.textContent = t('copyFailed') + ' ' + err.message;
       }
     }
   }
@@ -502,13 +528,13 @@
   function doCopyWithServer() {
     const target = copyTargetDir.value.trim();
     if (!target) {
-      alert('请输入目标目录路径');
+      alert(t('enterTargetPath'));
       return;
     }
     const paths = Array.from(state.selected);
     copyProgress.classList.remove('hidden');
     progressFill.style.width = '0%';
-    progressText.textContent = '复制中...';
+    progressText.textContent = t('copying');
 
     fetch('/api/copy', {
       method: 'POST',
@@ -519,10 +545,10 @@
       .then((data) => {
         if (data.error) throw new Error(data.error);
         progressFill.style.width = '100%';
-        progressText.textContent = `完成！成功复制 ${data.successCount} / ${data.total} 张`;
+        progressText.textContent = `${t('copyDone')} ${data.successCount} / ${data.total}`;
       })
       .catch((err) => {
-        progressText.textContent = '复制失败: ' + err.message;
+        progressText.textContent = t('copyFailed') + ' ' + err.message;
       });
   }
 
@@ -552,7 +578,7 @@
         } catch (err) {
           if (err.name === 'AbortError') return;
           const msg = err.message || String(err);
-          alert('目录选择失败: ' + msg + '\n\n请使用下方输入框手动输入路径。');
+          alert(t('dirPickFailed') + '\n\n' + msg);
         }
       });
     } else {
@@ -562,7 +588,7 @@
     dirConfirm.addEventListener('click', () => {
       const path = dirInput.value.trim();
       if (!path) {
-        alert('请输入目录路径');
+        alert(t('enterDirPath'));
         return;
       }
       fetch('/api/set-dir', {
@@ -621,6 +647,15 @@
   }
 
   function init() {
+    applyLang();
+    langSwitcher?.querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (window.i18n?.setLang(btn.dataset.lang)) {
+          applyLang();
+          renderDateGroups();
+        }
+      });
+    });
     initDirPicker();
     initKeyboard();
 
@@ -630,6 +665,46 @@
     copyPickTarget.addEventListener('click', doCopyWithPicker);
     copyConfirm.addEventListener('click', doCopyWithServer);
     copyClose.addEventListener('click', closeCopyModal);
+
+    settingsBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      settingsMenu?.classList.toggle('hidden');
+    });
+    document.addEventListener('click', () => settingsMenu?.classList.add('hidden'));
+    settingsMenu?.addEventListener('click', (e) => e.stopPropagation());
+
+    btnUpdate?.addEventListener('click', async () => {
+      settingsMenu?.classList.add('hidden');
+      btnUpdate.disabled = true;
+      btnUpdate.textContent = '...';
+      try {
+        const r = await fetch('/api/update', { method: 'POST' });
+        const data = await r.json();
+        if (data.error) throw new Error(data.error);
+        alert(t('updateSuccess'));
+      } catch (err) {
+        alert(t('updateFailed') + ': ' + err.message);
+      } finally {
+        btnUpdate.disabled = false;
+        if (btnUpdate.dataset.i18n) btnUpdate.textContent = t(btnUpdate.dataset.i18n);
+      }
+    });
+
+    btnUninstall?.addEventListener('click', async () => {
+      settingsMenu?.classList.add('hidden');
+      if (!confirm(t('uninstallConfirm'))) return;
+      if (!confirm(t('uninstallConfirmAgain'))) return;
+      try {
+        const r = await fetch('/api/uninstall', { method: 'POST' });
+        const data = await r.json();
+        if (data.error) throw new Error(data.error);
+        alert(t('uninstallStarted'));
+        window.close();
+        setTimeout(() => { document.body.innerHTML = '<p style="padding:2rem;text-align:center">Uninstalled. You can close this tab.</p>'; }, 500);
+      } catch (err) {
+        alert(t('uninstallFailed') + ': ' + err.message);
+      }
+    });
 
     loadPhotosFromServer()
       .then((groups) => {

@@ -1,55 +1,66 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QuickLook - 摄影师筛片工具</title>
+  <title>QuickLook - Photo Screening Tool</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👀</text></svg>">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="app">
-    <!-- 目录选择（未指定时显示） -->
-    <div id="dir-picker" class="panel hidden">
-      <h1>QuickLook</h1>
-      <p class="subtitle">摄影师快速筛片工具</p>
-      <button id="dir-pick-btn" class="btn-pick">选择照片目录</button>
-      <div id="dir-fallback" class="dir-fallback">
-        <p class="fallback-label">或手动输入路径：</p>
-        <div class="dir-input-wrap">
-          <input type="text" id="dir-input" placeholder="例如 /Users/xxx/Pictures" />
-          <button id="dir-confirm">打开</button>
+    <div class="top-bar">
+      <div id="lang-switcher" class="lang-switcher">
+        <button data-lang="en">EN</button>
+        <button data-lang="zh">中文</button>
+      </div>
+      <div class="settings-wrap">
+        <button id="settings-btn" class="settings-btn" title="Settings" aria-label="Settings">⋮</button>
+        <div id="settings-menu" class="settings-menu hidden">
+          <button id="btn-update" data-i18n="update"></button>
+          <button id="btn-uninstall" data-i18n="uninstall" class="danger"></button>
         </div>
       </div>
-      <p class="hint">提示：可通过命令行指定目录启动，如 <code>node server.js /path/to/photos</code></p>
     </div>
 
-    <!-- 主界面：日期分组列表 -->
+    <div id="dir-picker" class="panel hidden">
+      <h1>QuickLook</h1>
+      <p class="subtitle" data-i18n="subtitle"></p>
+      <button id="dir-pick-btn" class="btn-pick" data-i18n="selectDir"></button>
+      <div id="dir-fallback" class="dir-fallback">
+        <p class="fallback-label" data-i18n="orEnterPath"></p>
+        <div class="dir-input-wrap">
+          <input type="text" id="dir-input" data-i18n-placeholder="dirPlaceholder" />
+          <button id="dir-confirm" data-i18n="open"></button>
+        </div>
+      </div>
+      <p class="hint"><span data-i18n="hint"></span></p>
+    </div>
+
     <div id="main-panel" class="panel hidden">
       <header class="header">
         <h1>QuickLook</h1>
         <div class="header-actions">
-          <span id="selected-count" class="badge">已选 0 张</span>
-          <button id="btn-copy" class="btn-primary" disabled>批量复制</button>
+          <span id="selected-count" class="badge"></span>
+          <button id="btn-copy" class="btn-primary" disabled data-i18n="batchCopy"></button>
         </div>
       </header>
-      <div id="loading" class="loading">正在加载照片...</div>
+      <div id="loading" class="loading" data-i18n="loadingPhotos"></div>
       <div id="date-groups" class="date-groups"></div>
     </div>
 
-    <!-- 单图预览模式 -->
     <div id="preview-panel" class="panel hidden">
       <div class="preview-toolbar">
         <span id="preview-info">1 / 100</span>
         <div class="preview-toolbar-center">
-          <span id="preview-selected-count" class="preview-selected-count">已选 0 张</span>
-          <button id="btn-copy-preview" class="btn-primary" disabled>批量复制</button>
+          <span id="preview-selected-count" class="preview-selected-count"></span>
+          <button id="btn-copy-preview" class="btn-primary" disabled data-i18n="batchCopy"></button>
         </div>
-        <span id="preview-selected" class="selected-indicator">已选中</span>
-        <button id="btn-exit-preview">退出 (Esc)</button>
+        <span id="preview-selected" class="selected-indicator" data-i18n="selected"></span>
+        <button id="btn-exit-preview" data-i18n="exit"></button>
       </div>
       <div class="preview-content">
-        <img id="preview-img" src="" alt="预览" />
+        <img id="preview-img" src="" alt="Preview" />
       </div>
       <div class="preview-footer">
         <div id="preview-load-bar" class="preview-load-bar hidden">
@@ -57,35 +68,35 @@
         </div>
         <div class="preview-footer-row">
           <div id="preview-exif" class="preview-exif"></div>
-          <div class="preview-hint">空格: 选中/取消 | ← →: 切换 | Esc: 退出</div>
+          <div class="preview-hint" data-i18n="previewHint"></div>
         </div>
       </div>
     </div>
 
-    <!-- 批量复制弹窗 -->
     <div id="copy-modal" class="modal hidden">
       <div class="modal-content">
-        <h2>批量复制</h2>
-        <p>将选中的 <strong id="copy-count">0</strong> 张照片复制到目标目录</p>
+        <h2 data-i18n="copyModalTitle"></h2>
+        <p id="copy-modal-desc"></p>
         <div id="copy-picker-wrap">
-          <button id="copy-pick-target" class="btn-pick">选择目标目录</button>
+          <button id="copy-pick-target" class="btn-pick" data-i18n="selectTargetDir"></button>
         </div>
         <div id="copy-input-wrap" class="dir-fallback hidden">
-          <p class="fallback-label">或输入目标路径（命令行模式）：</p>
+          <p class="fallback-label" data-i18n="orEnterTarget"></p>
           <div class="dir-input-wrap">
-            <input type="text" id="copy-target-dir" placeholder="目标目录路径" />
-            <button id="copy-confirm">开始复制</button>
+            <input type="text" id="copy-target-dir" data-i18n-placeholder="targetPlaceholder" />
+            <button id="copy-confirm" data-i18n="startCopy"></button>
           </div>
         </div>
         <div id="copy-progress" class="copy-progress hidden">
           <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
-          <p id="progress-text">复制中...</p>
+          <p id="progress-text"></p>
         </div>
-        <button id="copy-close" class="btn-secondary">关闭</button>
+        <button id="copy-close" class="btn-secondary" data-i18n="close"></button>
       </div>
     </div>
   </div>
   <script src="https://unpkg.com/exifr@7.1.3/dist/full.umd.js"></script>
+  <script src="i18n.js"></script>
   <script src="thumbCache.js"></script>
   <script src="app.js"></script>
 </body>
