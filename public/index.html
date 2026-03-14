@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickLook - 摄影师筛片工具</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 目录选择（未指定时显示） -->
+    <div id="dir-picker" class="panel hidden">
+      <h1>QuickLook</h1>
+      <p class="subtitle">摄影师快速筛片工具</p>
+      <button id="dir-pick-btn" class="btn-pick">选择照片目录</button>
+      <div id="dir-fallback" class="dir-fallback">
+        <p class="fallback-label">或手动输入路径：</p>
+        <div class="dir-input-wrap">
+          <input type="text" id="dir-input" placeholder="例如 /Users/xxx/Pictures" />
+          <button id="dir-confirm">打开</button>
+        </div>
+      </div>
+      <p class="hint">提示：可通过命令行指定目录启动，如 <code>node server.js /path/to/photos</code></p>
+    </div>
+
+    <!-- 主界面：日期分组列表 -->
+    <div id="main-panel" class="panel hidden">
+      <header class="header">
+        <h1>QuickLook</h1>
+        <div class="header-actions">
+          <span id="selected-count" class="badge">已选 0 张</span>
+          <button id="btn-copy" class="btn-primary" disabled>批量复制</button>
+        </div>
+      </header>
+      <div id="loading" class="loading">正在加载照片...</div>
+      <div id="date-groups" class="date-groups"></div>
+    </div>
+
+    <!-- 单图预览模式 -->
+    <div id="preview-panel" class="panel hidden">
+      <div class="preview-toolbar">
+        <span id="preview-info">1 / 100</span>
+        <div class="preview-toolbar-center">
+          <span id="preview-selected-count" class="preview-selected-count">已选 0 张</span>
+          <button id="btn-copy-preview" class="btn-primary" disabled>批量复制</button>
+        </div>
+        <span id="preview-selected" class="selected-indicator">已选中</span>
+        <button id="btn-exit-preview">退出 (Esc)</button>
+      </div>
+      <div class="preview-content">
+        <img id="preview-img" src="" alt="预览" />
+      </div>
+      <div class="preview-footer">
+        <div id="preview-load-bar" class="preview-load-bar hidden">
+          <div class="preview-load-fill"></div>
+        </div>
+        <div class="preview-footer-row">
+          <div id="preview-exif" class="preview-exif"></div>
+          <div class="preview-hint">空格: 选中/取消 | ← →: 切换 | Esc: 退出</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 批量复制弹窗 -->
+    <div id="copy-modal" class="modal hidden">
+      <div class="modal-content">
+        <h2>批量复制</h2>
+        <p>将选中的 <strong id="copy-count">0</strong> 张照片复制到目标目录</p>
+        <div id="copy-picker-wrap">
+          <button id="copy-pick-target" class="btn-pick">选择目标目录</button>
+        </div>
+        <div id="copy-input-wrap" class="dir-fallback hidden">
+          <p class="fallback-label">或输入目标路径（命令行模式）：</p>
+          <div class="dir-input-wrap">
+            <input type="text" id="copy-target-dir" placeholder="目标目录路径" />
+            <button id="copy-confirm">开始复制</button>
+          </div>
+        </div>
+        <div id="copy-progress" class="copy-progress hidden">
+          <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+          <p id="progress-text">复制中...</p>
+        </div>
+        <button id="copy-close" class="btn-secondary">关闭</button>
+      </div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/exifr@7.1.3/dist/full.umd.js"></script>
+  <script src="thumbCache.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
