@@ -326,6 +326,7 @@ async function start(dirArg) {
       console.log('Or visit the URL above and select directory in the web UI');
       exec(`open "${url}"`);
     }
+    console.log('Close browser tab to exit (toggle in ⋮ menu)');
   });
 }
 

@@ -645,8 +645,29 @@
     });
   }
 
+  const EXIT_ON_CLOSE_KEY = 'quicklook_exit_on_close';
+
+  function startKeepalive() {
+    if (window._keepaliveAbort) window._keepaliveAbort.abort();
+    const ctrl = new AbortController();
+    window._keepaliveAbort = ctrl;
+    fetch('/api/keepalive', { signal: ctrl.signal }).catch(() => {});
+  }
+
   function init() {
-    fetch('/api/keepalive').catch(() => {});
+    const exitOnCloseCheck = $('#exit-on-close');
+    const exitOnClose = localStorage.getItem(EXIT_ON_CLOSE_KEY);
+    const enabled = exitOnClose === null || exitOnClose === 'true';
+    if (exitOnCloseCheck) {
+      exitOnCloseCheck.checked = enabled;
+      exitOnCloseCheck.addEventListener('change', () => {
+        const v = exitOnCloseCheck.checked;
+        localStorage.setItem(EXIT_ON_CLOSE_KEY, String(v));
+        if (v) startKeepalive();
+        else if (window._keepaliveAbort) window._keepaliveAbort.abort();
+      });
+    }
+    if (enabled) startKeepalive();
     applyLang();
     document.querySelectorAll('[data-lang]').forEach((btn) => {
       btn.addEventListener('click', () => {

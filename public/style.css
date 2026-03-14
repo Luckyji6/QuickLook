@@ -82,6 +82,20 @@
   margin: 0.25rem 0;
 }
 
+.menu-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  flex: none;
+  text-align: left;
+}
+
+.menu-toggle input {
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
 :root {
   --bg: #1a1a1a;
   --bg-elevated: #252525;
