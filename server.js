@@ -232,6 +232,7 @@ app.post('/api/uninstall', (req, res) => {
     const script = `sleep 2; rm -f "${launcher}"; rm -rf "${installDir}"`;
     spawn('sh', ['-c', script], { detached: true, stdio: 'ignore' }).unref();
     res.json({ success: true, message: 'Uninstall started. This page will close.' });
+    res.on('finish', () => process.exit(0));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Uninstall failed' });
@@ -283,13 +284,13 @@ async function start(dirArg) {
 
   app.listen(PORT, () => {
     const url = `http://localhost:${PORT}`;
-    console.log(`QuickLook 已启动: ${url}`);
+    console.log(`QuickLook started: ${url}`);
     if (photosBasePath) {
-      console.log(`照片目录: ${photosBasePath}`);
+      console.log(`Photo directory: ${photosBasePath}`);
       exec(`open "${url}"`);
     } else {
-      console.log('请通过命令行指定照片目录，例如: node server.js /path/to/photos');
-      console.log('或访问上述 URL 后在前端选择目录（需配合目录选择功能）');
+      console.log('Specify photo directory via command line, e.g. node server.js /path/to/photos');
+      console.log('Or visit the URL above and select directory in the web UI');
       exec(`open "${url}"`);
     }
   });
