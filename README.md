@@ -12,27 +12,38 @@ A local web tool that helps photographers quickly filter photos and batch-copy t
 
 ## Installation
 
+One-line install (clones from GitHub, auto-detects environment, uses Bun/pnpm/yarn):
+
 ```bash
-npm install -g quicklook-photo
+curl -fsSL https://raw.githubusercontent.com/Luckyji6/QuickLook/main/install.sh | bash
 ```
 
-Or run directly with npx:
+Then add to PATH if prompted:
 
 ```bash
-npx quicklook-photo /path/to/photos
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Or clone and run manually:
+
+```bash
+git clone https://github.com/Luckyji6/QuickLook.git
+cd QuickLook
+bun install   # or: pnpm install / yarn / npm install
+node server.js /path/to/photos
 ```
 
 ## Usage
 
 ```bash
 # Start with photo directory (recommended)
-quicklook-photo /path/to/your/photos
+quicklook /path/to/your/photos
 
 # Or
-npx quicklook-photo /path/to/your/photos
+npx quicklook /path/to/your/photos
 
 # Start without directory, then select or enter path in the web UI
-quicklook-photo
+quicklook
 ```
 
 The browser will open automatically at http://localhost:3847

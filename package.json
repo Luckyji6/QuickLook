@@ -1,10 +1,10 @@
 {
-  "name": "quicklook-photo",
+  "name": "quicklook",
   "version": "1.0.0",
   "description": "摄影师快速筛片工具 - 本地网页按日期浏览、筛选、批量复制照片",
   "main": "server.js",
   "bin": {
-    "quicklook-photo": "server.js"
+    "quicklook": "server.js"
   },
   "scripts": {
     "start": "node server.js",
