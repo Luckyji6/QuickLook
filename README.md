@@ -1,4 +1,10 @@
-# QuickLook - Photo Screening Tool for Photographers
+```
+ ____  _     _  ____ _  __   _     ____  ____  _  __
+/  _ \/ \ /\/ \/   _Y |/ /  / \   /  _ \/  _ \/ |/ /
+| / \|| | ||| ||  / |   /   | |   | / \|| / \||   /
+| \_\|| \_/|| ||  \_|   \   | |_/\| \_/|| \_/||   \
+\____\\____/\_/\____|_|\_\  \____/\____/\____/\_|\_\
+```
 
 A local web tool that helps photographers quickly filter photos and batch-copy them to a target directory.
 
