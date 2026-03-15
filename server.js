@@ -322,7 +322,7 @@ async function start(dirArg) {
       console.log(`Photo directory: ${photosBasePath}`);
       exec(`open "${url}"`);
     } else {
-      console.log('Specify photo directory via command line, e.g. node server.js /path/to/photos');
+      console.log('Specify photo directory via command line, e.g. quicklook /path/to/photos');
       console.log('Or visit the URL above and select directory in the web UI');
       exec(`open "${url}"`);
     }
