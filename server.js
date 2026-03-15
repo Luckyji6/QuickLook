@@ -15,8 +15,52 @@ let photosBasePath = null;
 let photosByDate = null;
 let keepaliveCount = 0;
 
+const CONFIG_PATH = path.join(__dirname, 'config.json');
+
+function getStartupLang() {
+  try {
+    if (fs.existsSync(CONFIG_PATH)) {
+      const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+      if (cfg.lang === 'zh' || cfg.lang === 'en') return cfg.lang;
+    }
+  } catch (_) {}
+  const lang = process.env.LANG || process.env.LC_ALL || '';
+  return lang.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+const STARTUP_MSG = {
+  en: {
+    started: 'QuickLook started:',
+    photoDir: 'Photo directory:',
+    specifyDir: 'Specify photo directory via command line, e.g. quicklook /path/to/photos',
+    orVisit: 'Or visit the URL above and select directory in the web UI',
+    closeToExit: 'Close browser tab to exit (toggle in ⋮ menu)',
+  },
+  zh: {
+    started: 'QuickLook 已启动:',
+    photoDir: '照片目录:',
+    specifyDir: '请通过命令行指定照片目录，例如 quicklook /path/to/photos',
+    orVisit: '或访问上述 URL 后在网页中选择目录',
+    closeToExit: '关闭标签页可退出（开关在 ⋮ 菜单中）',
+  },
+};
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// 保存语言偏好（供启动时显示对应语言）
+app.post('/api/set-lang', (req, res) => {
+  const { lang } = req.body;
+  if (lang !== 'zh' && lang !== 'en') {
+    return res.status(400).json({ error: 'Invalid lang' });
+  }
+  try {
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify({ lang }), 'utf8');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Keepalive：页面打开时建立长连接，关闭时断开，无连接时退出进程
 app.get('/api/keepalive', (req, res) => {
@@ -315,18 +359,20 @@ async function start(dirArg) {
   }
 
   app.listen(PORT, () => {
+    const lang = getStartupLang();
+    const msg = STARTUP_MSG[lang] || STARTUP_MSG.en;
     showStartupBanner();
     const url = `http://localhost:${PORT}`;
-    console.log(`QuickLook started: ${url}`);
+    console.log(`${msg.started} ${url}`);
     if (photosBasePath) {
-      console.log(`Photo directory: ${photosBasePath}`);
+      console.log(`${msg.photoDir} ${photosBasePath}`);
       exec(`open "${url}"`);
     } else {
-      console.log('Specify photo directory via command line, e.g. quicklook /path/to/photos');
-      console.log('Or visit the URL above and select directory in the web UI');
+      console.log(msg.specifyDir);
+      console.log(msg.orVisit);
       exec(`open "${url}"`);
     }
-    console.log('Close browser tab to exit (toggle in ⋮ menu)');
+    console.log(msg.closeToExit);
   });
 }
 

@@ -118,6 +118,7 @@
         lang = l;
         localStorage.setItem(LANG_KEY, l);
         document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'en';
+        fetch('/api/set-lang', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lang: l }) }).catch(() => {});
         return true;
       }
       return false;
