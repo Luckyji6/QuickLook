@@ -2,6 +2,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { exec } = require('child_process');
 const sharp = require('sharp');
 const { scanDirectory, groupPhotosByDate, findFileByName, getExifInfo } = require('./utils/imageUtils');
@@ -44,6 +45,24 @@ const STARTUP_MSG = {
     closeToExit: '关闭标签页可退出（开关在 ⋮ 菜单中）',
   },
 };
+
+function openBrowser(url) {
+  const plat = process.platform;
+  let cmd;
+  if (plat === 'darwin') cmd = `open "${url}"`;
+  else if (plat === 'win32') cmd = `start "" "${url}"`;
+  else cmd = `xdg-open "${url}"`;
+  exec(cmd, (err) => { if (err) console.log(url); });
+}
+
+function getBinDir() {
+  return path.join(os.homedir(), '.local', 'bin');
+}
+
+function getLauncherPath() {
+  const bin = getBinDir();
+  return process.platform === 'win32' ? path.join(bin, 'quicklook.cmd') : path.join(bin, 'quicklook');
+}
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -197,10 +216,10 @@ function sendProgress(res, data) {
 
 app.post('/api/update', async (req, res) => {
   const installDir = path.join(__dirname);
-  const os = require('os');
-  const binDir = path.join(os.homedir(), '.local', 'bin');
-  const launcherPath = path.join(binDir, 'quicklook');
+  const binDir = getBinDir();
+  const launcherPath = getLauncherPath();
   const { execSync } = require('child_process');
+  const isWin = process.platform === 'win32';
 
   res.setHeader('Content-Type', 'application/x-ndjson');
   res.setHeader('Cache-Control', 'no-cache');
@@ -242,7 +261,15 @@ app.post('/api/update', async (req, res) => {
     }
 
     sendProgress(res, { progress: 85, messageKey: 'updateLauncher' });
-    const launcherScript = `#!/bin/bash
+    if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
+    if (isWin) {
+      const cmd = `@echo off
+cd /d "${installDir}"
+"${runner}" server.js %*
+`;
+      fs.writeFileSync(launcherPath, cmd, 'utf8');
+    } else {
+      const launcherScript = `#!/bin/bash
 cd "${installDir}"
 # Auto-update on startup (only when behind)
 if [ -d ".git" ]; then
@@ -260,8 +287,8 @@ if [ -d ".git" ]; then
 fi
 exec ${runner} server.js "$@"
 `;
-    if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
-    fs.writeFileSync(launcherPath, launcherScript, { mode: 0o755 });
+      fs.writeFileSync(launcherPath, launcherScript, { mode: 0o755 });
+    }
 
     sendProgress(res, { progress: 100, success: true, messageKey: 'updateRestarting', updated: true });
     res.end();
@@ -269,7 +296,12 @@ exec ${runner} server.js "$@"
     const { spawn } = require('child_process');
     const args = photosBasePath ? [photosBasePath] : [];
     res.on('finish', () => {
-      spawn(launcherPath, args, { detached: true, stdio: 'ignore', env: process.env }).unref();
+      const opt = { detached: true, stdio: 'ignore', env: process.env };
+      if (isWin) {
+        spawn('cmd.exe', ['/c', launcherPath, ...args], opt).unref();
+      } else {
+        spawn(launcherPath, args, opt).unref();
+      }
       process.exit(0);
     });
   } catch (err) {
@@ -279,15 +311,26 @@ exec ${runner} server.js "$@"
   }
 });
 
-// 卸载（移除启动器 + 安装目录，需二次确认由前端处理）
+// 卸载（跨平台：用 Node 延迟删除启动器与安装目录）
 app.post('/api/uninstall', (req, res) => {
   const installDir = path.join(__dirname);
-  const binDir = path.join(require('os').homedir(), '.local', 'bin');
-  const launcher = path.join(binDir, 'quicklook');
+  const launcher = getLauncherPath();
   try {
     const { spawn } = require('child_process');
-    const script = `sleep 2; rm -f "${launcher}"; rm -rf "${installDir}"`;
-    spawn('sh', ['-c', script], { detached: true, stdio: 'ignore' }).unref();
+    const script = `
+      const fs=require('fs');
+      const os=require('os');
+      setTimeout(() => {
+        try { process.chdir(os.homedir()); } catch(e) {}
+        try { fs.unlinkSync(process.env.QL_LAUNCHER); } catch(e) {}
+        try { fs.rmSync(process.env.QL_DIR, { recursive: true }); } catch(e) {}
+      }, 2000);
+    `;
+    spawn(process.execPath, ['-e', script], {
+      detached: true,
+      stdio: 'ignore',
+      env: { ...process.env, QL_LAUNCHER: launcher, QL_DIR: installDir },
+    }).unref();
     res.json({ success: true, message: 'Uninstall started. This page will close.' });
     res.on('finish', () => process.exit(0));
   } catch (err) {
@@ -366,11 +409,11 @@ async function start(dirArg) {
     console.log(`${msg.started} ${url}`);
     if (photosBasePath) {
       console.log(`${msg.photoDir} ${photosBasePath}`);
-      exec(`open "${url}"`);
+      openBrowser(url);
     } else {
       console.log(msg.specifyDir);
       console.log(msg.orVisit);
-      exec(`open "${url}"`);
+      openBrowser(url);
     }
     console.log(msg.closeToExit);
   });

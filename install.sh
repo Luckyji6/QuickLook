@@ -1,6 +1,13 @@
 #!/bin/bash
 set -e
 
+# Windows (Git Bash / MSYS / Cygwin): run install.ps1
+if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ -n "${WINDIR:-}" ]] || \
+   [[ "$(uname -s 2>/dev/null)" == MINGW* ]] || [[ "$(uname -s 2>/dev/null)" == MSYS* ]]; then
+  curl -fsSL "https://raw.githubusercontent.com/Luckyji6/QuickLook/main/install.ps1" | powershell -NoProfile -ExecutionPolicy Bypass -Command -
+  exit $?
+fi
+
 REPO_URL="https://github.com/Luckyji6/QuickLook.git"
 INSTALL_DIR="${QUICKLOOK_HOME:-$HOME/.quicklook}"
 BIN_LINK="${QUICKLOOK_BIN:-$HOME/.local/bin}"

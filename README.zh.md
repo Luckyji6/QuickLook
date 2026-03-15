@@ -20,17 +20,22 @@
 
 ## 安装
 
-一键安装（从 GitHub 克隆，自动检测环境，使用 Bun/pnpm/yarn）：
+**统一一键安装（所有平台同一条命令）：**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Luckyji6/QuickLook/main/install.sh | bash
 ```
 
-若提示，请将以下内容加入 PATH：
+- **macOS / Linux：** 直接运行 shell 安装脚本。若提示，请将 `export PATH="$HOME/.local/bin:$PATH"` 加入 PATH。
+- **Windows（Git Bash / MSYS）：** 会自动识别 Windows 并执行 `install.ps1`。
 
-```bash
-export PATH="$HOME/.local/bin:$PATH"
+**仅用 Windows PowerShell 时**（没有 Git Bash 时）可单独执行：
+
+```powershell
+irm https://raw.githubusercontent.com/Luckyji6/QuickLook/main/install.ps1 | iex
 ```
+
+安装后重启终端以使 `quicklook` 生效。
 
 或手动克隆并运行：
 
@@ -48,13 +53,26 @@ node server.js /path/to/photos
 手动更新：
 
 ```bash
+# macOS / Linux
 curl -fsSL https://raw.githubusercontent.com/Luckyji6/QuickLook/main/update.sh | bash
+```
+```powershell
+# Windows
+irm https://raw.githubusercontent.com/Luckyji6/QuickLook/main/update.ps1 | iex
 ```
 
 ## 卸载
 
+**macOS / Linux：**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Luckyji6/QuickLook/main/uninstall.sh | bash
+```
+
+**Windows（PowerShell）：**
+
+```powershell
+irm https://raw.githubusercontent.com/Luckyji6/QuickLook/main/uninstall.ps1 | iex
 ```
 
 ## 使用

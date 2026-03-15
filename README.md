@@ -20,17 +20,22 @@ A local web tool that helps photographers quickly filter photos and batch-copy t
 
 ## Installation
 
-One-line install (clones from GitHub, auto-detects environment, uses Bun/pnpm/yarn):
+**One-line install (all platforms):**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Luckyji6/QuickLook/main/install.sh | bash
 ```
 
-Then add to PATH if prompted:
+- **macOS / Linux:** runs the shell installer. If prompted, add to PATH: `export PATH="$HOME/.local/bin:$PATH"`.
+- **Windows (Git Bash / MSYS):** detects Windows and runs `install.ps1` automatically.
 
-```bash
-export PATH="$HOME/.local/bin:$PATH"
+**Windows (PowerShell only):** if you use PowerShell and don’t have Git Bash, run:
+
+```powershell
+irm https://raw.githubusercontent.com/Luckyji6/QuickLook/main/install.ps1 | iex
 ```
+
+Restart the terminal so `quicklook` is on PATH.
 
 Or clone and run manually:
 
@@ -48,13 +53,26 @@ QuickLook **auto-updates on startup** when you run `quicklook` — it checks for
 Manual update:
 
 ```bash
+# macOS / Linux
 curl -fsSL https://raw.githubusercontent.com/Luckyji6/QuickLook/main/update.sh | bash
+```
+```powershell
+# Windows
+irm https://raw.githubusercontent.com/Luckyji6/QuickLook/main/update.ps1 | iex
 ```
 
 ## Uninstall
 
+**macOS / Linux:**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Luckyji6/QuickLook/main/uninstall.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/Luckyji6/QuickLook/main/uninstall.ps1 | iex
 ```
 
 ## Usage
