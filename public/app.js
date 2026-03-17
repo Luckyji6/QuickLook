@@ -1,6 +1,7 @@
 (function () {
   const PRELOAD_RANGE = 3;
   const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.heif', '.webp', '.tiff', '.tif', '.gif', '.bmp'];
+  const EXIT_ON_CLOSE_KEY = 'quicklook_exit_on_close';
 
   const t = (key, vars) => window.i18n?.t(key, vars) ?? key;
 
@@ -382,6 +383,32 @@
     return parts.join('  ·  ');
   }
 
+  function clearClientBlobCache() {
+    if (state.flatPhotos && state.flatPhotos.length > 0) {
+      state.flatPhotos.forEach((photo) => {
+        if (photo.objectUrl && photo.objectUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(photo.objectUrl);
+          photo.objectUrl = null;
+        }
+        if (photo.thumbUrl && photo.thumbUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(photo.thumbUrl);
+          photo.thumbUrl = null;
+        }
+      });
+    }
+    if (previewImg && previewImg.src && previewImg.src.startsWith('blob:')) {
+      URL.revokeObjectURL(previewImg.src);
+      previewImg.src = '';
+    }
+  }
+
+  function clearClientCacheOnExit() {
+    clearClientBlobCache();
+    if (window.thumbCache?.clear) {
+      window.thumbCache.clear().catch(() => {});
+    }
+  }
+
   function formatExifDisplay(exif) {
     if (!exif || typeof exif !== 'object') return '';
     const parts = [];
@@ -645,13 +672,24 @@
     });
   }
 
-  const EXIT_ON_CLOSE_KEY = 'quicklook_exit_on_close';
-
   function startKeepalive() {
     if (window._keepaliveAbort) window._keepaliveAbort.abort();
     const ctrl = new AbortController();
     window._keepaliveAbort = ctrl;
     fetch('/api/keepalive', { signal: ctrl.signal }).catch(() => {});
+  }
+
+  function registerCacheCleanupOnExit() {
+    const cleanupOnce = (() => {
+      let cleaned = false;
+      return () => {
+        if (cleaned) return;
+        cleaned = true;
+        clearClientCacheOnExit();
+      };
+    })();
+    window.addEventListener('beforeunload', cleanupOnce);
+    window.addEventListener('pagehide', cleanupOnce);
   }
 
   function init() {
@@ -668,6 +706,7 @@
       });
     }
     if (enabled) startKeepalive();
+    registerCacheCleanupOnExit();
     applyLang();
     document.querySelectorAll('[data-lang]').forEach((btn) => {
       btn.addEventListener('click', () => {
