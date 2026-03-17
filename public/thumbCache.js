@@ -2,6 +2,8 @@
   const DB_NAME = 'QuickLookThumbCache';
   const STORE = 'thumbs';
   const MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 天
+  const MAX_BLOB_BYTES = 8 * 1024 * 1024;
+  const MAX_TOTAL_BYTES = 300 * 1024 * 1024;
 
   let db = null;
 
@@ -31,12 +33,37 @@
       return new Promise((resolve, reject) => {
         const tx = d.transaction(STORE, 'readwrite');
         const store = tx.objectStore(STORE);
+        const entries = [];
+        let total = 0;
         const req = store.openCursor();
         req.onsuccess = () => {
           const cursor = req.result;
-          if (!cursor) return resolve();
-          if (cursor.value && cursor.value.time < cutoff) {
+          if (!cursor) {
+            if (total > MAX_TOTAL_BYTES) {
+              const sorted = entries.sort((a, b) => a.time - b.time);
+              let excess = total - MAX_TOTAL_BYTES;
+              for (const item of sorted) {
+                if (excess <= 0) break;
+                if (!item) continue;
+                try {
+                  store.delete(item.key);
+                  excess -= item.size || 0;
+                } catch (_) {}
+              }
+            }
+            return resolve();
+          }
+          const blob = cursor.value?.blob;
+          const size = blob?.size || 0;
+          total += size;
+          entries.push({
+            key: cursor.key,
+            time: cursor.value?.time || 0,
+            size,
+          });
+          if ((cursor.value && cursor.value.time < cutoff) || (blob && blob.size > MAX_BLOB_BYTES)) {
             cursor.delete();
+            total -= size;
           }
           cursor.continue();
         };
@@ -71,6 +98,7 @@
     },
     async set(path, lastModified, blob) {
       try {
+        if (!blob || blob.size > MAX_BLOB_BYTES) return;
         const d = await getDB();
         return new Promise((resolve, reject) => {
           const tx = d.transaction(STORE, 'readwrite');
@@ -79,7 +107,10 @@
             blob,
             time: Date.now(),
           });
-          tx.oncomplete = () => resolve();
+          tx.oncomplete = () => {
+            purgeExpiredEntries().catch(() => {});
+            resolve();
+          };
           tx.onerror = () => reject(tx.error);
         });
       } catch (_) {}

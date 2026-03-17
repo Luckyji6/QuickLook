@@ -15,6 +15,8 @@ const PORT = 3847;
 let photosBasePath = null;
 let photosByDate = null;
 let keepaliveCount = 0;
+let keepaliveExitTimer = null;
+const KEEPALIVE_EXIT_DELAY_MS = 2500;
 
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 
@@ -83,13 +85,26 @@ app.post('/api/set-lang', (req, res) => {
 
 // Keepalive：页面打开时建立长连接，关闭时断开，无连接时退出进程
 app.get('/api/keepalive', (req, res) => {
+  const clearExitTimer = () => {
+    if (keepaliveExitTimer) {
+      clearTimeout(keepaliveExitTimer);
+      keepaliveExitTimer = null;
+    }
+  };
+
   res.setHeader('Content-Type', 'text/plain');
   res.setHeader('Cache-Control', 'no-cache');
   res.write(' ');
+  clearExitTimer();
   keepaliveCount++;
   req.on('close', () => {
-    keepaliveCount--;
-    if (keepaliveCount <= 0) process.exit(0);
+    keepaliveCount = Math.max(0, keepaliveCount - 1);
+    if (keepaliveCount <= 0) {
+      clearExitTimer();
+      keepaliveExitTimer = setTimeout(() => {
+        if (keepaliveCount <= 0) process.exit(0);
+      }, KEEPALIVE_EXIT_DELAY_MS);
+    }
   });
 });
 

@@ -94,8 +94,7 @@
     return '/api/thumb/' + encodeURIComponent(photo.relativePath);
   }
 
-  function createClientThumb(photo) {
-    if (photo.thumbUrl) return Promise.resolve(photo.thumbUrl);
+  function createClientThumbBlob(photo) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
@@ -110,10 +109,8 @@
         ctx.drawImage(img, 0, 0, w, h);
         c.toBlob(
           (blob) => {
-            if (blob) {
-              photo.thumbUrl = URL.createObjectURL(blob);
-              resolve(photo.thumbUrl);
-            } else reject();
+            if (blob) resolve(blob);
+            else reject();
           },
           'image/jpeg',
           0.8
@@ -121,6 +118,19 @@
       };
       img.onerror = reject;
       img.src = photo.objectUrl;
+    });
+  }
+
+  function createClientThumb(photo) {
+    if (photo.thumbUrl) return Promise.resolve(photo.thumbUrl);
+    return createClientThumbBlob(photo).then((blob) => {
+      const thumbUrl = URL.createObjectURL(blob);
+      photo.thumbUrl = thumbUrl;
+      const cache = window.thumbCache;
+      if (cache && photo.relativePath && photo.file?.lastModified != null) {
+        cache.set(photo.relativePath, photo.file.lastModified, blob).catch(() => {});
+      }
+      return thumbUrl;
     });
   }
 
@@ -169,24 +179,26 @@
     const cache = window.thumbCache;
     const withUrls = await Promise.all(
       withDates.map(async (p) => {
-        let objectUrl;
+        const objectUrl = URL.createObjectURL(p.file);
+        let thumbUrl = null;
+        p.objectUrl = objectUrl;
         if (cache) {
           const cached = await cache.get(p.relativePath, p.file.lastModified);
           if (cached) {
-            objectUrl = URL.createObjectURL(cached);
-          } else {
-            objectUrl = URL.createObjectURL(p.file);
-            cache.set(p.relativePath, p.file.lastModified, p.file);
+            thumbUrl = URL.createObjectURL(cached);
           }
-        } else {
-          objectUrl = URL.createObjectURL(p.file);
         }
-        return {
+        const result = {
           relativePath: p.relativePath,
           filename: p.filename,
           file: p.file,
           objectUrl,
           date: p.date,
+        };
+        if (thumbUrl) result.thumbUrl = thumbUrl;
+        return {
+          ...result,
+          thumbUrl: thumbUrl || null,
         };
       })
     );
@@ -204,13 +216,15 @@
 
   function loadPhotosFromServer() {
     return fetch('/api/photos')
-      .then((r) => r.json())
-      .then((data) => {
+      .then(async (r) => {
+        if (!r.ok) {
+          if (r.status === 400) return [];
+          const data = await r.json().catch(() => ({}));
+          throw new Error(data.error || r.statusText || 'Failed to load photos');
+        }
+        const data = await r.json();
         if (data.error) throw new Error(data.error);
-        return data.groups.map((g) => ({
-          date: g.date,
-          photos: g.photos.map((p) => ({ ...p, objectUrl: null })),
-        }));
+        return data?.groups?.map((g) => ({ date: g.date, photos: g.photos.map((p) => ({ ...p, objectUrl: null })) })) || [];
       });
   }
 
