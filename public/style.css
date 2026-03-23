@@ -362,6 +362,23 @@ body {
   vertical-align: top;
 }
 
+.photo-thumb-wrap video.photo-thumb {
+  pointer-events: none;
+}
+
+.media-badge {
+  position: absolute;
+  right: 0.45rem;
+  bottom: 0.45rem;
+  padding: 0.16rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(24, 18, 10, 0.78);
+  border: 1px solid rgba(212, 168, 83, 0.45);
+  color: #f3d28b;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
 /* 单图预览 */
 #preview-panel {
   position: fixed;
@@ -414,10 +431,16 @@ body {
   overflow: hidden;
 }
 
-.preview-content img {
+.preview-content img,
+.preview-content video {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+}
+
+.preview-content video.hidden,
+.preview-content img.hidden {
+  display: none;
 }
 
 .preview-footer {
@@ -449,6 +472,11 @@ body {
   background: var(--accent);
   width: 0%;
   animation: preview-load 1.5s ease-in-out infinite;
+}
+
+.preview-load-fill.determinate {
+  animation: none;
+  transition: width 0.2s ease;
 }
 
 @keyframes preview-load {

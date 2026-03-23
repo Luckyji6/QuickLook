@@ -3,9 +3,11 @@ const path = require('path');
 const exifr = require('exifr');
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.heif', '.webp', '.tiff', '.tif', '.gif', '.bmp'];
+const VIDEO_EXTENSIONS = ['.mp4', '.mov', '.m4v', '.webm', '.ogv', '.ogg'];
+const MEDIA_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS];
 
 /**
- * 递归扫描目录获取所有图片文件
+ * 递归扫描目录获取所有媒体文件
  */
 function scanDirectory(dirPath, basePath = dirPath) {
   const results = [];
@@ -19,12 +21,13 @@ function scanDirectory(dirPath, basePath = dirPath) {
     } else if (entry.isFile()) {
       if (entry.name.startsWith('._')) continue;
       const ext = path.extname(entry.name).toLowerCase();
-      if (IMAGE_EXTENSIONS.includes(ext)) {
+      if (MEDIA_EXTENSIONS.includes(ext)) {
         const relativePath = path.relative(basePath, fullPath);
         results.push({
           path: fullPath,
           relativePath: relativePath.replace(/\\/g, '/'),
           filename: entry.name,
+          type: VIDEO_EXTENSIONS.includes(ext) ? 'video' : 'image',
         });
       }
     }
@@ -76,6 +79,8 @@ async function groupPhotosByDate(photos) {
  * 获取照片完整 EXIF 信息（用于预览显示）
  */
 async function getExifInfo(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (!IMAGE_EXTENSIONS.includes(ext)) return null;
   try {
     const exif = await exifr.parse(filePath, {
       pick: [
@@ -137,4 +142,6 @@ module.exports = {
   findFileByName,
   getExifInfo,
   IMAGE_EXTENSIONS,
+  VIDEO_EXTENSIONS,
+  MEDIA_EXTENSIONS,
 };

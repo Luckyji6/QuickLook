@@ -5,7 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const { exec } = require('child_process');
 const sharp = require('sharp');
-const { scanDirectory, groupPhotosByDate, findFileByName, getExifInfo } = require('./utils/imageUtils');
+const { scanDirectory, groupPhotosByDate, findFileByName, getExifInfo, VIDEO_EXTENSIONS } = require('./utils/imageUtils');
 
 const THUMB_SIZE = 320;
 
@@ -64,6 +64,68 @@ function getBinDir() {
 function getLauncherPath() {
   const bin = getBinDir();
   return process.platform === 'win32' ? path.join(bin, 'quicklook.cmd') : path.join(bin, 'quicklook');
+}
+
+function resolveRequestedPath(basePath, rawRelativePath) {
+  let relativePath = decodeURIComponent(rawRelativePath).replace(/^\/+/, '');
+  let fullPath = path.resolve(basePath, relativePath);
+  const baseResolved = path.resolve(basePath);
+  if (!fullPath.startsWith(baseResolved) || !fs.existsSync(fullPath)) {
+    const filename = path.basename(relativePath);
+    if (filename.startsWith('._')) return null;
+    const found = findFileByName(basePath, filename);
+    if (!found) return null;
+    relativePath = found;
+    fullPath = path.resolve(basePath, found);
+  }
+  return { relativePath, fullPath };
+}
+
+function getMimeType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeMap = {
+    '.mp4': 'video/mp4',
+    '.mov': 'video/quicktime',
+    '.m4v': 'video/x-m4v',
+    '.webm': 'video/webm',
+    '.ogv': 'video/ogg',
+    '.ogg': 'video/ogg',
+  };
+  return mimeMap[ext] || 'application/octet-stream';
+}
+
+function streamVideo(req, res, fullPath) {
+  const stat = fs.statSync(fullPath);
+  const total = stat.size;
+  const range = req.headers.range;
+  const contentType = getMimeType(fullPath);
+  res.setHeader('Accept-Ranges', 'bytes');
+  res.setHeader('Cache-Control', 'public, max-age=2592000');
+  res.setHeader('Content-Type', contentType);
+
+  if (!range) {
+    res.setHeader('Content-Length', total);
+    fs.createReadStream(fullPath).pipe(res);
+    return;
+  }
+
+  const match = /bytes=(\d*)-(\d*)/.exec(range);
+  if (!match) {
+    res.status(416).end();
+    return;
+  }
+
+  const start = match[1] ? parseInt(match[1], 10) : 0;
+  const end = match[2] ? parseInt(match[2], 10) : total - 1;
+  if (Number.isNaN(start) || Number.isNaN(end) || start > end || start >= total) {
+    res.status(416).end();
+    return;
+  }
+
+  res.status(206);
+  res.setHeader('Content-Range', `bytes ${start}-${end}/${total}`);
+  res.setHeader('Content-Length', end - start + 1);
+  fs.createReadStream(fullPath, { start, end }).pipe(res);
 }
 
 app.use(express.json());
@@ -128,20 +190,9 @@ app.get('/api/photos', async (req, res) => {
 // 缩略图接口（主页面用），最大边长 320px
 app.get(/^\/api\/thumb\/(.+)$/, async (req, res) => {
   if (!photosBasePath) return res.status(400).send('未指定照片目录');
-  let relativePath = decodeURIComponent(req.params[0]).replace(/^\/+/, '');
-  let fullPath = path.resolve(photosBasePath, relativePath);
-  const baseResolved = path.resolve(photosBasePath);
-  if (!fullPath.startsWith(baseResolved) || !fs.existsSync(fullPath)) {
-    const filename = path.basename(relativePath);
-    if (filename.startsWith('._')) return res.status(404).send('文件不存在');
-    const found = findFileByName(photosBasePath, filename);
-    if (found) {
-      relativePath = found;
-      fullPath = path.resolve(photosBasePath, found);
-    } else {
-      return res.status(404).send('文件不存在');
-    }
-  }
+  const resolved = resolveRequestedPath(photosBasePath, req.params[0]);
+  if (!resolved) return res.status(404).send('文件不存在');
+  const { fullPath } = resolved;
   const ext = path.extname(fullPath).toLowerCase();
   const thumbFormats = ['.jpg', '.jpeg', '.png', '.webp', '.tiff', '.tif', '.gif', '.heic', '.heif'];
   if (!thumbFormats.includes(ext)) {
@@ -165,38 +216,33 @@ app.get(/^\/api\/photo\/(.+)$/, (req, res) => {
   if (!photosBasePath) {
     return res.status(400).send('未指定照片目录');
   }
-  let relativePath = decodeURIComponent(req.params[0]).replace(/^\/+/, '');
-  let fullPath = path.resolve(photosBasePath, relativePath);
-  const baseResolved = path.resolve(photosBasePath);
-  if (!fullPath.startsWith(baseResolved)) {
-    return res.status(403).send('禁止访问');
-  }
-  if (!fs.existsSync(fullPath)) {
-    const filename = path.basename(relativePath);
-    if (filename.startsWith('._')) return res.status(404).send('文件不存在');
-    const found = findFileByName(photosBasePath, filename);
-    if (found) {
-      fullPath = path.resolve(photosBasePath, found);
-    } else {
-      return res.status(404).send('文件不存在');
-    }
-  }
+  const resolved = resolveRequestedPath(photosBasePath, req.params[0]);
+  if (!resolved) return res.status(404).send('文件不存在');
+  const { fullPath } = resolved;
   res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30 天
   res.sendFile(fullPath);
+});
+
+app.get(/^\/api\/media\/(.+)$/, (req, res) => {
+  if (!photosBasePath) {
+    return res.status(400).send('未指定照片目录');
+  }
+  const resolved = resolveRequestedPath(photosBasePath, req.params[0]);
+  if (!resolved) return res.status(404).send('文件不存在');
+  const { fullPath } = resolved;
+  if (!VIDEO_EXTENSIONS.includes(path.extname(fullPath).toLowerCase())) {
+    res.setHeader('Cache-Control', 'public, max-age=2592000');
+    return res.sendFile(fullPath);
+  }
+  streamVideo(req, res, fullPath);
 });
 
 // 获取照片 EXIF 信息
 app.get(/^\/api\/exif\/(.+)$/, async (req, res) => {
   if (!photosBasePath) return res.status(400).json({ error: '未指定照片目录' });
-  let relativePath = decodeURIComponent(req.params[0]).replace(/^\/+/, '');
-  let fullPath = path.resolve(photosBasePath, relativePath);
-  const baseResolved = path.resolve(photosBasePath);
-  if (!fullPath.startsWith(baseResolved) || !fs.existsSync(fullPath)) {
-    const filename = path.basename(relativePath);
-    const found = findFileByName(photosBasePath, filename);
-    if (found) fullPath = path.resolve(photosBasePath, found);
-    else return res.status(404).json({ error: '文件不存在' });
-  }
+  const resolved = resolveRequestedPath(photosBasePath, req.params[0]);
+  if (!resolved) return res.status(404).json({ error: '文件不存在' });
+  const { fullPath } = resolved;
   try {
     const exif = await getExifInfo(fullPath);
     res.json(exif || {});
