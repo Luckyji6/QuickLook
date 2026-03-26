@@ -103,21 +103,22 @@ jobs:
           QUICKLOOK_BIN: ${{ runner.temp }}\quicklook-bin
         run: |
           $ErrorActionPreference = "Stop"
+          $repoRoot = $env:GITHUB_WORKSPACE
 
-          ./install.ps1
+          & "$repoRoot/install.ps1"
           if (-not (Test-Path $env:QUICKLOOK_HOME)) { throw "Install directory missing" }
 
           $launcher = Join-Path $env:QUICKLOOK_BIN "quicklook.cmd"
           if (-not (Test-Path $launcher)) { throw "Launcher missing" }
 
-          ./install.ps1
+          & "$repoRoot/install.ps1"
           if (-not (Test-Path $env:QUICKLOOK_HOME)) { throw "Install directory missing after reinstall" }
           if (-not (Test-Path $launcher)) { throw "Launcher missing after reinstall" }
 
-          ./uninstall.ps1
+          & "$repoRoot/uninstall.ps1"
           if (Test-Path $env:QUICKLOOK_HOME) { throw "Install directory still exists after uninstall" }
           if (Test-Path $launcher) { throw "Launcher still exists after uninstall" }
 
-          ./uninstall.ps1
+          & "$repoRoot/uninstall.ps1"
           if (Test-Path $env:QUICKLOOK_HOME) { throw "Install directory still exists after second uninstall" }
           if (Test-Path $launcher) { throw "Launcher still exists after second uninstall" }
