@@ -80,7 +80,11 @@ jobs:
             Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
             Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
           }
-          $issues = @(Invoke-ScriptAnalyzer -Path install.ps1, update.ps1 -Severity Error, Warning)
+          $issues = @()
+          foreach ($f in @("install.ps1", "update.ps1")) {
+            $r = Invoke-ScriptAnalyzer -Path $f -Severity Error, Warning
+            if ($r) { $issues += @($r) }
+          }
           if ($issues.Count -gt 0) {
             $issues | Format-Table -AutoSize
             throw "PSScriptAnalyzer reported $($issues.Count) issue(s)."
