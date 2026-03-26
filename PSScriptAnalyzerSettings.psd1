@@ -4,7 +4,6 @@
     ExcludeRules = @(
         'PSAvoidUsingWriteHost',
         'PSUseApprovedVerbs',
-        'PSUseSingularNouns',
         'PSUseShouldProcessForStateChangingFunctions',
         'PSAvoidUsingPositionalParameters'
     )
