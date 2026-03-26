@@ -8,8 +8,9 @@ function Log-Info { Write-Host "[INFO] $args" -ForegroundColor Green }
 function Log-Warn { Write-Host "[WARN] $args" -ForegroundColor Yellow }
 function Log-Err  { Write-Host "[ERR] $args"  -ForegroundColor Red }
 
-function Test-Command($name) {
-  try { Get-Command $name -ErrorAction Stop | Out-Null; return $true } catch { return $false }
+function Test-Command {
+  param([string]$Name)
+  return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
 Log-Info "QuickLook - Windows Installer"

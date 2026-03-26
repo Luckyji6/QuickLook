@@ -80,9 +80,10 @@ jobs:
             Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
             Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
           }
+          $settings = Join-Path $env:GITHUB_WORKSPACE "PSScriptAnalyzerSettings.psd1"
           $issues = @()
           foreach ($f in @("install.ps1", "update.ps1")) {
-            $r = Invoke-ScriptAnalyzer -Path $f -Severity Error, Warning
+            $r = Invoke-ScriptAnalyzer -Path $f -Severity Error, Warning -Settings $settings
             if ($r) { $issues += @($r) }
           }
           if ($issues.Count -gt 0) {

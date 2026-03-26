@@ -31,7 +31,12 @@ git pull origin main
 
 Log-Info "Reinstalling dependencies..."
 $runner = "node"
-if (Get-Command bun -ErrorAction SilentlyContinue) { bun install; $runner = "bun" } else { npm install }
+if (Get-Command bun -ErrorAction SilentlyContinue) {
+  bun install
+  $runner = "bun"
+} else {
+  npm install
+}
 
 Log-Info "Updating launcher..."
 New-Item -ItemType Directory -Force -Path $BIN_DIR | Out-Null
