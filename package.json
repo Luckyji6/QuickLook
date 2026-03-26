@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "check": "node --check server.js && node --check utils/imageUtils.js && node --check public/app.js && node --check public/i18n.js && node --check public/thumbCache.js"
   },
   "keywords": [
     "photo",

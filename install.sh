@@ -58,7 +58,8 @@ install_node() {
     log_info "Node.js already installed: $(node -v)"
     return 0
   fi
-  local os=$(detect_os)
+  local os
+  os=$(detect_os)
   log_info "Installing Node.js..."
   if [ "$os" = "macos" ]; then
     if has_cmd brew; then
@@ -170,7 +171,8 @@ main() {
   fi
 
   # Install deps
-  local pm=$(install_deps) || exit 1
+  local pm
+  pm=$(install_deps) || exit 1
 
   # Create launcher
   case "$pm" in
