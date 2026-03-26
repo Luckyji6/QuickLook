@@ -107,8 +107,25 @@
     return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
   }
 
-  let lang = localStorage.getItem(LANG_KEY) || 'en';
+  function detectBrowserLang() {
+    const langs = Array.isArray(navigator.languages) && navigator.languages.length > 0
+      ? navigator.languages
+      : [navigator.language || navigator.userLanguage || 'en'];
+    return langs.some((item) => String(item || '').toLowerCase().startsWith('zh')) ? 'zh' : 'en';
+  }
+
+  const savedLang = localStorage.getItem(LANG_KEY);
+  let lang = savedLang || detectBrowserLang();
   document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+
+  if (!savedLang) {
+    localStorage.setItem(LANG_KEY, lang);
+    fetch('/api/set-lang', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lang }),
+    }).catch(() => {});
+  }
 
   window.i18n = {
     t(key, vars) {
