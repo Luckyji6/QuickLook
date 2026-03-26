@@ -6,17 +6,19 @@
 \____\\____/\_/\____|_|\_\  \____/\____/\____/\_|\_\
 ```
 
-本地网页工具，帮助摄影师快速筛选照片并批量复制到目标目录。
+本地网页工具，帮助摄影师快速筛选照片和视频，并将选中的内容批量复制到目标目录。
 
 [English](README.md)
 
 ## 功能
 
-- 打开指定目录，按日期分组展示所有照片
-- 单图预览模式：全屏查看，空格选中/取消，左右箭头切换
-- 显示 EXIF 摄影参数（光圈、快门、ISO、焦距等）
+- 打开指定目录，按日期分组展示所有图片和视频
+- 混合媒体全屏预览：支持键盘切换、快速选中/取消
+- 视频支持流式加载，已缓冲的部分可立即播放
+- 在视频预览中按住 `Enter` 可 3 倍速快进
+- 图片可显示 EXIF 摄影参数（光圈、快门、ISO、焦距等）
 - 图片预加载与缩略图缓存
-- 批量复制选中的照片到目标目录
+- 批量复制选中的内容到目标目录
 
 ## 安装
 
@@ -78,11 +80,11 @@ irm https://raw.githubusercontent.com/Luckyji6/QuickLook/main/uninstall.ps1 | ie
 ## 使用
 
 ```bash
-# 指定照片目录启动（推荐）
-quicklook /path/to/your/photos
+# 指定媒体目录启动（推荐）
+quicklook /path/to/your/media
 
 # 或
-npx quicklook /path/to/your/photos
+npx quicklook /path/to/your/media
 
 # 不指定目录启动，在网页中选择或输入路径
 quicklook
@@ -94,14 +96,17 @@ quicklook
 
 | 按键 | 功能 |
 |------|------|
-| 空格 | 选中/取消选中当前照片 |
-| → | 下一张 |
-| ← | 上一张 |
+| 空格 | 选中/取消选中当前项 |
+| 按住 `Enter` | 视频预览时 3 倍速快进 |
+| → | 下一项 |
+| ← | 上一项 |
 | Esc | 退出预览 |
 
-## 支持的图片格式
+## 支持的格式
 
-JPG、JPEG、PNG、HEIC、HEIF、WebP、TIFF、GIF、BMP
+图片：JPG、JPEG、PNG、HEIC、HEIF、WebP、TIFF、GIF、BMP
+
+视频：MP4、MOV、M4V、WebM、OGV、OGG
 
 ## License
 

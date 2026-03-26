@@ -6,17 +6,19 @@
 \____\\____/\_/\____|_|\_\  \____/\____/\____/\_|\_\
 ```
 
-A local web tool that helps photographers quickly filter photos and batch-copy them to a target directory.
+A local web tool that helps photographers quickly filter photos and videos and batch-copy selected items to a target directory.
 
 [中文](README.zh.md)
 
 ## Features
 
-- Open a directory and display all photos grouped by date
-- Single-image preview mode: full-screen view, space to select/deselect, arrow keys to switch
-- Display EXIF parameters (aperture, shutter speed, ISO, focal length, etc.)
+- Open a directory and display photos and videos grouped by date
+- Full-screen preview for mixed media, with keyboard navigation and quick selection
+- Videos support streamed playback so buffered parts can play immediately
+- Hold `Enter` in video preview for 3x fast-forward
+- Display EXIF parameters for photos (aperture, shutter speed, ISO, focal length, etc.)
 - Image preloading and thumbnail caching
-- Batch copy selected photos to a target directory
+- Batch copy selected items to a target directory
 
 ## Installation
 
@@ -78,11 +80,11 @@ irm https://raw.githubusercontent.com/Luckyji6/QuickLook/main/uninstall.ps1 | ie
 ## Usage
 
 ```bash
-# Start with photo directory (recommended)
-quicklook /path/to/your/photos
+# Start with media directory (recommended)
+quicklook /path/to/your/media
 
 # Or
-npx quicklook /path/to/your/photos
+npx quicklook /path/to/your/media
 
 # Start without directory, then select or enter path in the web UI
 quicklook
@@ -94,14 +96,17 @@ The browser will open automatically at http://localhost:3847
 
 | Key | Action |
 |-----|--------|
-| Space | Select / deselect current photo |
-| → | Next photo |
-| ← | Previous photo |
+| Space | Select / deselect current item |
+| Hold `Enter` | 3x fast-forward in video preview |
+| → | Next item |
+| ← | Previous item |
 | Esc | Exit preview |
 
-## Supported Image Formats
+## Supported Formats
 
-JPG, JPEG, PNG, HEIC, HEIF, WebP, TIFF, GIF, BMP
+Images: JPG, JPEG, PNG, HEIC, HEIF, WebP, TIFF, GIF, BMP
+
+Videos: MP4, MOV, M4V, WebM, OGV, OGG
 
 ## License
 
