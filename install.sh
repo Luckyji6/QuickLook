@@ -8,7 +8,7 @@ if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ -n "${WINDIR:-
   exit $?
 fi
 
-REPO_URL="https://github.com/Luckyji6/QuickLook.git"
+REPO_URL="${QUICKLOOK_REPO_URL:-https://github.com/Luckyji6/QuickLook.git}"
 INSTALL_DIR="${QUICKLOOK_HOME:-$HOME/.quicklook}"
 BIN_LINK="${QUICKLOOK_BIN:-$HOME/.local/bin}"
 LAUNCHER="quicklook"

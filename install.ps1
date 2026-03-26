@@ -1,6 +1,6 @@
 # QuickLook - Windows Installer (PowerShell)
 $ErrorActionPreference = "Stop"
-$REPO_URL = "https://github.com/Luckyji6/QuickLook.git"
+$REPO_URL = if ($env:QUICKLOOK_REPO_URL) { $env:QUICKLOOK_REPO_URL } else { "https://github.com/Luckyji6/QuickLook.git" }
 $INSTALL_DIR = if ($env:QUICKLOOK_HOME) { $env:QUICKLOOK_HOME } else { Join-Path $env:USERPROFILE ".quicklook" }
 $BIN_DIR = if ($env:QUICKLOOK_BIN) { $env:QUICKLOOK_BIN } else { Join-Path $env:USERPROFILE ".local\bin" }
 

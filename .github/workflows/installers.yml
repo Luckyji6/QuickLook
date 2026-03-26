@@ -1,0 +1,119 @@
+name: Validate Installers
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unix-installers:
+    name: Unix Installers (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Prepare local test remote
+        run: |
+          set -euo pipefail
+          REMOTE_DIR="${RUNNER_TEMP}/quicklook-remote.git"
+          rm -rf "$REMOTE_DIR"
+          git init --bare "$REMOTE_DIR"
+          git push "$REMOTE_DIR" HEAD:refs/heads/main
+          echo "QUICKLOOK_TEST_REPO=$REMOTE_DIR" >> "$GITHUB_ENV"
+
+      - name: Make shell scripts executable
+        run: chmod +x install.sh uninstall.sh
+
+      - name: Verify install and uninstall
+        env:
+          QUICKLOOK_REPO_URL: ${{ env.QUICKLOOK_TEST_REPO }}
+          QUICKLOOK_HOME: ${{ runner.temp }}/quicklook-home
+          QUICKLOOK_BIN: ${{ runner.temp }}/quicklook-bin
+        run: |
+          set -euo pipefail
+
+          ./install.sh
+          test -d "$QUICKLOOK_HOME"
+          test -x "$QUICKLOOK_BIN/quicklook"
+
+          ./install.sh
+          test -d "$QUICKLOOK_HOME"
+          test -x "$QUICKLOOK_BIN/quicklook"
+
+          ./uninstall.sh
+          test ! -e "$QUICKLOOK_HOME"
+          test ! -e "$QUICKLOOK_BIN/quicklook"
+
+          ./uninstall.sh
+          test ! -e "$QUICKLOOK_HOME"
+          test ! -e "$QUICKLOOK_BIN/quicklook"
+
+  windows-installers:
+    name: Windows Installers
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Prepare local test remote
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $remoteDir = Join-Path $env:RUNNER_TEMP "quicklook-remote.git"
+          if (Test-Path $remoteDir) {
+            Remove-Item -Recurse -Force $remoteDir
+          }
+          git init --bare $remoteDir
+          git push $remoteDir HEAD:refs/heads/main
+          "QUICKLOOK_TEST_REPO=$remoteDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Verify install and uninstall
+        shell: pwsh
+        env:
+          QUICKLOOK_REPO_URL: ${{ env.QUICKLOOK_TEST_REPO }}
+          QUICKLOOK_HOME: ${{ runner.temp }}\quicklook-home
+          QUICKLOOK_BIN: ${{ runner.temp }}\quicklook-bin
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          ./install.ps1
+          if (-not (Test-Path $env:QUICKLOOK_HOME)) { throw "Install directory missing" }
+
+          $launcher = Join-Path $env:QUICKLOOK_BIN "quicklook.cmd"
+          if (-not (Test-Path $launcher)) { throw "Launcher missing" }
+
+          ./install.ps1
+          if (-not (Test-Path $env:QUICKLOOK_HOME)) { throw "Install directory missing after reinstall" }
+          if (-not (Test-Path $launcher)) { throw "Launcher missing after reinstall" }
+
+          ./uninstall.ps1
+          if (Test-Path $env:QUICKLOOK_HOME) { throw "Install directory still exists after uninstall" }
+          if (Test-Path $launcher) { throw "Launcher still exists after uninstall" }
+
+          ./uninstall.ps1
+          if (Test-Path $env:QUICKLOOK_HOME) { throw "Install directory still exists after second uninstall" }
+          if (Test-Path $launcher) { throw "Launcher still exists after second uninstall" }
